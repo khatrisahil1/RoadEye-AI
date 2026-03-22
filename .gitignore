@@ -1,0 +1,24 @@
+# Environments
+venv/
+env/
+.env
+backend/.env
+
+# Node Modules
+node_modules/
+dist/
+build/
+.npm/
+
+# Web App Databases & Cache
+*.db
+*.sqlite3
+backend/roadeye.db
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+
+# Legacy Unnecessary Commits
+*.log
+.coverage
