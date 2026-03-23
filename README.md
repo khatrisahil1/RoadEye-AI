@@ -61,7 +61,7 @@ SENDER_PASSWORD="your_16_char_google_app_password"
 
 **Ignition:**
 ```bash
-uvicorn main:app --reload
+source ../venv/bin/activate && uvicorn main:app --reload
 ```
 
 ### 2. Frontend Boot Sequence
