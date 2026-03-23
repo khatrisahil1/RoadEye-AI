@@ -76,4 +76,24 @@ The system will now be active at **http://localhost:5173**.
 Navigate to the "Workstation" tab to configure your IP Camera (RTSP hook) or Local WebCam and begin AI inferences!
 
 ---
+
+## 🛠️ Useful & Required Commands Reference
+
+### Backend Commands
+Navigate to the `backend` directory before running these:
+- **Create Virtual Environment:** `python -m venv venv`
+- **Activate Environment (Mac/Linux):** `source venv/bin/activate`
+- **Activate Environment (Windows):** `venv\Scripts\activate`
+- **Install Dependencies:** `pip install -r requirements.txt`
+- **Start Server (Development):** `uvicorn main:app --reload`
+- **Start Server (Custom Port/Host):** `uvicorn main:app --host 0.0.0.0 --port 8000 --reload`
+
+### Frontend Commands
+Navigate to the `frontend` directory before running these:
+- **Install Dependencies:** `npm install`
+- **Run Developer Server:** `npm run dev`
+- **Build for Production:** `npm run build`
+- **Preview Production Build:** `npm run preview`
+
+---
 *Built as a dedicated final year system software engineering project.*

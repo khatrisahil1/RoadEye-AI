@@ -137,4 +137,22 @@ The integration attaches the temporary `.jpg` and fires via an SMTP standard rel
 
 ---
 
+## 🛠️ 7. Useful & Required Commands Quick Reference
+
+### Backend (`backend/` directory)
+- **Create Virtual Environment:** `python -m venv venv`
+- **Activate VENV (Mac/Linux):** `source venv/bin/activate`
+- **Activate VENV (Windows):** `venv\Scripts\activate`
+- **Install Python Dependencies:** `pip install -r requirements.txt`
+- **Run FastAPI via Uvicorn (Dev Mode):** `uvicorn main:app --reload`
+- **Run FastAPI (Custom Host/Port):** `uvicorn main:app --host 0.0.0.0 --port 8000 --reload`
+
+### Frontend (`frontend/` directory)
+- **Install Node Modules:** `npm install`
+- **Start Vite Dev Server:** `npm run dev`
+- **Build Project:** `npm run build`
+- **Preview Production Build:** `npm run preview`
+
+---
+
 ### *End of System Design Documentation.*

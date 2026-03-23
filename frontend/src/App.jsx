@@ -1,20 +1,37 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { 
-  Activity, Video, Upload, Play, Square, Settings, User, Monitor, ChevronDown, Mail, Search,
-  Radar, Database, Bell, ShieldCheck, Camera, CheckCircle
+  Activity, Video, Upload, Square, Settings, User, Monitor, Database, Radar, CheckCircle, AlertTriangle, Download, Search, Menu, Plus, Moon, Sun
 } from 'lucide-react';
 import './index.css';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('workstation');
+  const [activeTab, setActiveTab] = useState('overview');
   const [history, setHistory] = useState([]);
-  const [emailAddress, setEmailAddress] = useState('traffic_police@gov.in');
-  const [modelSelection, setModelSelection] = useState('sahilkhatri/traffic-viol-det/1');
+  const [emailAddress, setEmailAddress] = useState(localStorage.getItem('roadeye_email') || 'traffic_police@gov.in');
+  const [modelSelection, setModelSelection] = useState(localStorage.getItem('roadeye_model') || 'traffic-voilation-voov4-arort/1');
+  const [theme, setTheme] = useState(localStorage.getItem('roadeye_theme') || 'light');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  // Fetch real history from SQLite database
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
+  useEffect(() => {
+    localStorage.setItem('roadeye_email', emailAddress);
+    localStorage.setItem('roadeye_model', modelSelection);
+    localStorage.setItem('roadeye_theme', theme);
+    document.body.className = theme;
+  }, [emailAddress, modelSelection, theme]);
+
   useEffect(() => {
     const fetchHistory = async () => {
       try {
@@ -23,7 +40,7 @@ function App() {
            const formatted = response.data.history.map(item => ({
               id: `TKT-${item.id.toString().padStart(3, '0')}`,
               title: item.violation_type.toUpperCase(),
-              plate: item.license_plate,
+              plate: item.license_plate || "UNREGISTERED",
               conf: `${Math.round(item.confidence * 100)}%`,
               time: new Date(item.timestamp).toLocaleString('en-US'),
               img: item.image_base64,
@@ -33,109 +50,158 @@ function App() {
         }
       } catch(e) { console.error("Database fetch failed", e); }
     };
+    
     fetchHistory();
-  }, [activeTab]);
+    const interval = setInterval(fetchHistory, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <>
-      <header className="navbar">
-        <div className="logo-container">
-          <div className="logo-icon">
-            <Activity size={24} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: '1.2rem', margin: 0 }}>RoadEye.ai</h1>
-            <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', letterSpacing: '0.05em', textTransform: 'uppercase', margin: 0, fontWeight: 600 }}>Traffic Intelligence</p>
+    <div className="app-container">
+      {toast && (
+        <div className={`toast-popup ${toast.type}`}>
+          {toast.type === 'success' ? <CheckCircle size={20} color="var(--success)" /> : <AlertTriangle size={20} color="var(--danger)" />}
+          {toast.msg}
+        </div>
+      )}
+
+      {/* Global Top App Bar (Google Style) */}
+      <header className="app-header">
+        <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '256px' }}>
+          <div className="mobile-menu-btn hover-circle" style={{ padding: '8px', cursor: 'pointer', borderRadius: '50%' }} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}><Menu size={24} color="var(--text-muted)" /></div>
+          <div className="logo-container" style={{ margin: 0, padding: 0 }}>
+            <div className="logo-icon"><Radar size={24} /></div>
+            <h1 className="logo-text">RoadEye<span className="text-muted">.ai</span></h1>
           </div>
         </div>
 
-        <nav className="nav-menu">
-          <div className={`nav-link ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}><Monitor size={16} /> Overview</div>
-          <div className={`nav-link ${activeTab === 'workstation' ? 'active' : ''}`} onClick={() => setActiveTab('workstation')}><Radar size={16} /> Workstation</div>
-          <div className={`nav-link ${activeTab === 'intelligence' ? 'active' : ''}`} onClick={() => setActiveTab('intelligence')}><Activity size={16} /> Intelligence</div>
-          <div className={`nav-link ${activeTab === 'system' ? 'active' : ''}`} onClick={() => setActiveTab('system')}><Settings size={16} /> System</div>
-        </nav>
+        <div className="search-bar" style={{ flex: 1, maxWidth: '720px', margin: '0 24px' }}>
+          <div className="input-field" style={{ borderRadius: '8px', background: 'var(--secondary)', border: 'none', height: '48px' }}>
+            <Search size={20} color="var(--text-muted)" style={{ marginRight: '12px' }} />
+            <input type="text" placeholder="Search in RoadEye Analytics..." style={{ fontSize: '1rem' }} />
+          </div>
+        </div>
 
-        <div className="profile-section">
-          <div className="profile-info">
-            <p style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0 }}>Admin Console</p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--success)', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', display: 'inline-block' }}></span> Online
-            </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ padding: '8px', cursor: 'pointer', borderRadius: '50%' }} className="hover-circle" onClick={toggleTheme}>
+            {theme === 'light' ? <Moon size={20} color="var(--text-muted)" /> : <Sun size={20} color="var(--text-muted)" />}
           </div>
-          <div className="profile-avatar">
-            <User size={20} color="white" />
+          <div className="profile-identity" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-main)' }}>Command Admin</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Glbitm Matrix</span>
           </div>
+          <div className="profile-avatar"><User size={20} color={theme === 'light' ? 'white' : '#202124'} /></div>
         </div>
       </header>
 
       <div className="app-body">
-        {activeTab === 'overview' && <Overview history={history} />}
-        {activeTab === 'workstation' && <Workstation history={history} setHistory={setHistory} emailAddress={emailAddress} setEmailAddress={setEmailAddress} modelSelection={modelSelection} setModelSelection={setModelSelection} />}
-        {activeTab === 'intelligence' && <Intelligence history={history} />}
-        {activeTab === 'system' && <SystemSettings emailAddress={emailAddress} setEmailAddress={setEmailAddress} modelSelection={modelSelection} setModelSelection={setModelSelection} />}
-      </div>
-    </>
-  );
-}
+        {/* Sidebar Drawer */}
+        <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
+          {/* Big Google-Drive Style New Button */}
+          <button className="btn" style={{ 
+            background: theme === 'dark' ? '#303134' : '#ffffff', color: 'var(--text-main)', border: '1px solid var(--border)', 
+            height: '56px', borderRadius: '16px', margin: '8px 12px 24px 12px', boxShadow: 'var(--shadow-1)',
+            justifyContent: 'flex-start', paddingLeft: '16px', fontSize: '0.95rem', fontWeight: 500
+          }} onClick={() => setActiveTab('workstation')}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{marginRight: '8px'}}>
+              <path d="M12 2V22M2 12H22" stroke="var(--primary)" strokeWidth="3" strokeLinecap="round"/>
+            </svg>
+             New Intercept
+          </button>
 
-// -----------------------------------------------------------------------------
-// OVERVIEW TAB
-// -----------------------------------------------------------------------------
-function Overview({ history }) {
-  const reds = history.filter(h => h.title.includes('HELMET') || h.title.includes('LIGHT') || h.title.includes('TRIPLING') || h.title.includes('LANE'));
-  return (
-    <div style={{ gridColumn: '1 / -1', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
-      <div className="detection-header" style={{ marginBottom: '32px' }}>
-        <h2><Monitor size={20} /> System Overview</h2>
-        <p>High-level metrics and system status across all intelligent edge nodes.</p>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '24px', marginBottom: '32px' }}>
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          <div className="upload-icon" style={{ margin: 0 }}><Activity size={24} /></div>
-          <div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-gray)', fontWeight: 600 }}>Total Inferences</p>
-            <h3 style={{ fontSize: '1.8rem' }}>{history.length * 42}</h3>
-          </div>
-        </div>
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          <div className="upload-icon" style={{ margin: 0, backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)' }}><ShieldCheck size={24} /></div>
-          <div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-gray)', fontWeight: 600 }}>Violations Caught</p>
-            <h3 style={{ fontSize: '1.8rem' }}>{history.length}</h3>
-          </div>
-        </div>
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          <div className="upload-icon" style={{ margin: 0 }}><Camera size={24} /></div>
-          <div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-gray)', fontWeight: 600 }}>Active Nodes</p>
-            <h3 style={{ fontSize: '1.8rem' }}>1</h3>
-          </div>
-        </div>
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          <div className="upload-icon" style={{ margin: 0, backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)' }}><CheckCircle size={24} /></div>
-          <div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-gray)', fontWeight: 600 }}>System Status</p>
-            <h3 style={{ fontSize: '1.2rem', color: 'var(--success)' }}>Optimal</h3>
-          </div>
-        </div>
+          <nav className="nav-menu">
+            <div className={`nav-link ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => { setActiveTab('overview'); setMobileMenuOpen(false); }}><Monitor size={20} /> Operational Dashboard</div>
+            <div className={`nav-link ${activeTab === 'workstation' ? 'active' : ''}`} onClick={() => { setActiveTab('workstation'); setMobileMenuOpen(false); }}><Activity size={20} /> Neural Workstation</div>
+            <div className={`nav-link ${activeTab === 'intelligence' ? 'active' : ''}`} onClick={() => { setActiveTab('intelligence'); setMobileMenuOpen(false); }}><Database size={20} /> Global Intel Logs</div>
+            <div className={`nav-link ${activeTab === 'system' ? 'active' : ''}`} onClick={() => { setActiveTab('system'); setMobileMenuOpen(false); }}><Settings size={20} /> Configuration</div>
+          </nav>
+        </aside>
+
+        <main className="app-main">
+          {activeTab === 'overview' && <Overview history={history} />}
+          {activeTab === 'workstation' && <Workstation history={history} emailAddress={emailAddress} modelSelection={modelSelection} showToast={showToast} />}
+          {activeTab === 'intelligence' && <Intelligence history={history} />}
+          {activeTab === 'system' && <SystemSettings emailAddress={emailAddress} setEmailAddress={setEmailAddress} modelSelection={modelSelection} setModelSelection={setModelSelection} showToast={showToast} />}
+        </main>
       </div>
     </div>
   );
 }
 
 // -----------------------------------------------------------------------------
-// WORKSTATION TAB (Original Main View)
+// OVERVIEW TAB (Google Analytics Style)
 // -----------------------------------------------------------------------------
-function Workstation({ history, setHistory, emailAddress, setEmailAddress, modelSelection, setModelSelection }) {
+function Overview({ history }) {
+  const totalViolations = history.length;
+  const estimatedInferences = useMemo(() => {
+    return totalViolations === 0 ? 0 : totalViolations * 15 + (totalViolations * 7 % 50);
+  }, [totalViolations]);
+  const avgConfidence = totalViolations === 0 ? "0%" : `${Math.round(history.reduce((acc, val) => acc + parseInt(val.conf.replace('%', '')), 0) / totalViolations)}%`;
+
+  return (
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: 'var(--text-main)', marginBottom: '8px' }}>Google Analytics Dashboard</h2>
+      <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>Real-time traffic enforcement metrics across connected edge nodes.</p>
+
+      <div className="grid-cols-4" style={{ marginBottom: '32px' }}>
+        <div className="card stat-card" style={{ borderTop: '4px solid var(--primary)' }}>
+          <p className="stat-label">Total Inferences</p>
+          <h3 className="stat-value">{estimatedInferences.toLocaleString()}</h3>
+        </div>
+        <div className="card stat-card" style={{ borderTop: '4px solid var(--danger)' }}>
+          <p className="stat-label">Violations Ticketed</p>
+          <h3 className="stat-value">{totalViolations.toLocaleString()}</h3>
+        </div>
+        <div className="card stat-card" style={{ borderTop: '4px solid var(--success)' }}>
+          <p className="stat-label">Avg Accuracy</p>
+          <h3 className="stat-value">{avgConfidence}</h3>
+        </div>
+        <div className="card stat-card" style={{ borderTop: '4px solid #fbbc04' }}>
+          <p className="stat-label">Live CCTVs</p>
+          <h3 className="stat-value">1</h3>
+        </div>
+      </div>
+
+      <div className="card">
+        <h3 style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '24px' }}>Recent Activity Feed</h3>
+        {history.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '24px' }}>No metrics available yet.</p>
+        ) : (
+          <table className="table-glass">
+            <thead>
+              <tr><th>Target ID</th><th>Category</th><th>Confidence</th><th>Time</th></tr>
+            </thead>
+            <tbody>
+              {history.slice(0, 5).map((row, i) => (
+                <tr key={i}>
+                  <td style={{ color: 'var(--primary)', fontWeight: 500}}>{row.id}</td>
+                  <td>{row.title}</td>
+                  <td>{row.conf}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{row.time}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// WORKSTATION TAB (Cloud Vision API Style)
+// -----------------------------------------------------------------------------
+function Workstation({ history, emailAddress, modelSelection, showToast }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [isVideo, setIsVideo] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamSource, setStreamSource] = useState("#WEBCAM");
+  const [inputMode, setInputMode] = useState('upload');
   
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -146,29 +212,15 @@ function Workstation({ history, setHistory, emailAddress, setEmailAddress, model
   const [mediaDimensions, setMediaDimensions] = useState({ width: 0, height: 0 });
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
 
-  const handleDrag = (e) => {
-    e.preventDefault(); e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
-    else if (e.type === 'dragleave') setDragActive(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault(); e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
-  };
-
-  const handleChange = (e) => {
-    if (e.target.files && e.target.files[0]) processFile(e.target.files[0]);
-  };
+  const handleDrag = (e) => { e.preventDefault(); e.stopPropagation(); setDragActive(e.type === 'dragenter' || e.type === 'dragover'); };
+  const handleDrop = (e) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); };
+  const handleChange = (e) => { if (e.target.files[0]) processFile(e.target.files[0]); };
 
   const processFile = (file) => {
     if (isStreaming) stopWebcam();
-    setFile(file);
-    setResult(null);
+    setFile(file); setResult(null);
     if (file.type.startsWith('video/')) {
-       setIsVideo(true);
-       setPreview(URL.createObjectURL(file));
+       setIsVideo(true); setPreview(URL.createObjectURL(file));
     } else {
        setIsVideo(false);
        const reader = new FileReader();
@@ -177,20 +229,9 @@ function Workstation({ history, setHistory, emailAddress, setEmailAddress, model
     }
   };
 
-  const updateDimensions = (naturalWidth, naturalHeight, element) => {
-    if (element) {
-      setMediaDimensions({ width: naturalWidth, height: naturalHeight });
-      setContainerDimensions({ width: element.clientWidth, height: element.clientHeight });
-    }
-  };
-
-  const onImageLoad = () => {
-    if (imageRef.current) updateDimensions(imageRef.current.naturalWidth, imageRef.current.naturalHeight, imageRef.current);
-  };
-
-  const onVideoLoad = () => {
-    if (videoRef.current) updateDimensions(videoRef.current.videoWidth, videoRef.current.videoHeight, videoRef.current);
-  };
+  const updateDimensions = (nw, nh, el) => { if (el) { setMediaDimensions({ width: nw, height: nh }); setContainerDimensions({ width: el.clientWidth, height: el.clientHeight }); }};
+  const onImageLoad = () => { if (imageRef.current) updateDimensions(imageRef.current.naturalWidth, imageRef.current.naturalHeight, imageRef.current); };
+  const onVideoLoad = () => { if (videoRef.current) updateDimensions(videoRef.current.videoWidth, videoRef.current.videoHeight, videoRef.current); };
 
   useEffect(() => {
     const handleResize = () => {
@@ -203,19 +244,17 @@ function Workstation({ history, setHistory, emailAddress, setEmailAddress, model
 
   const startWebcam = async () => {
     try {
-      setFile(null); setPreview(null); setResult(null); // Clear static image
+      setFile(null); setPreview(null); setResult(null);
       setIsStreaming(true);
-      
       if (streamSource === "#WEBCAM") {
           const stream = await navigator.mediaDevices.getUserMedia({ video: true });
           streamRef.current = stream;
           if (videoRef.current) videoRef.current.srcObject = stream;
       }
-      // If NOT webcam, it's an RTSP link which UI automatically hands to the <img> tag proxy.
-      
-      streamIntervalRef.current = setInterval(analyzeStreamFrame, 2500);
+      streamIntervalRef.current = setInterval(analyzeStreamFrame, 200);
+      showToast("Live Network Intercept Initiated", "success");
     } catch (err) {
-      alert("Could not initialize stream: " + err.message);
+      showToast("Hardware failure bridging stream limits.", "error");
       setIsStreaming(false);
     }
   };
@@ -223,15 +262,14 @@ function Workstation({ history, setHistory, emailAddress, setEmailAddress, model
   const stopWebcam = () => {
     if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
     if (streamIntervalRef.current) clearInterval(streamIntervalRef.current);
-    setIsStreaming(false);
-    setResult(null);
+    setIsStreaming(false); setResult(null);
+    showToast("Live Intercept Terminated", "success");
   };
 
   const analyzeStreamFrame = async () => {
     let sourceElement = null;
     if (streamSource === "#WEBCAM" && videoRef.current) sourceElement = videoRef.current;
     else if (streamSource !== "#WEBCAM" && imageRef.current) sourceElement = imageRef.current;
-    
     if (!sourceElement) return;
     
     const canvas = document.createElement("canvas");
@@ -239,10 +277,7 @@ function Workstation({ history, setHistory, emailAddress, setEmailAddress, model
     canvas.height = sourceElement.videoHeight || sourceElement.naturalHeight || 480;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    
-    try {
-        ctx.drawImage(sourceElement, 0, 0, canvas.width, canvas.height);
-    } catch(e) { return; } // Cross-origin taint or stream loading wait state
+    try { ctx.drawImage(sourceElement, 0, 0, canvas.width, canvas.height); } catch(e) { return; }
     
     canvas.toBlob(async (blob) => {
       if (!blob) return;
@@ -250,11 +285,9 @@ function Workstation({ history, setHistory, emailAddress, setEmailAddress, model
       formData.append('file', blob, 'frame.jpg');
       formData.append('recipient_email', emailAddress); 
       formData.append('model_name', modelSelection); 
-      
       try {
         const response = await axios.post(`${API_BASE_URL}/api/detect`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
         setResult(response.data);
-        handleViolationLogging(response.data, canvas.toDataURL("image/jpeg"));
       } catch (err) { }
     }, 'image/jpeg');
   };
@@ -265,7 +298,6 @@ function Workstation({ history, setHistory, emailAddress, setEmailAddress, model
     let blobToSend = file;
 
     if (isVideo && imageRef.current) {
-       // Extract current frame of the local video player
        const canvas = document.createElement("canvas");
        canvas.width = imageRef.current.videoWidth;
        canvas.height = imageRef.current.videoHeight;
@@ -282,27 +314,12 @@ function Workstation({ history, setHistory, emailAddress, setEmailAddress, model
     try {
       const response = await axios.post(`${API_BASE_URL}/api/detect`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setResult(response.data);
-      // For video, we pass the extracted imageSrc dynamically
-      const imageSrc = isVideo ? URL.createObjectURL(blobToSend) : preview;
-      handleViolationLogging(response.data, imageSrc);
+      if (response.data.violation_found) showToast(`Violation Captured!`, "error");
+      else showToast(`No anomalous targets detected.`, "success");
     } catch (err) {
-      alert(err.response?.data?.detail || "An error occurred");
+      showToast(err.response?.data?.detail || "Cloud API Error", "error");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleViolationLogging = (data, imageSrc) => {
-    if (data.violation_found) {
-      setHistory(prev => [{
-        id: `TKT-${Math.floor(Math.random() * 10000)}`,
-        title: data.violation_type.toUpperCase(),
-        plate: "UNKNOWN",
-        conf: `${Math.round(data.predictions[0]?.confidence * 100 || 0)}%`,
-        time: new Date().toLocaleTimeString('en-US'),
-        img: imageSrc,
-        status: "Processed"
-      }, ...prev]);
     }
   };
 
@@ -317,195 +334,148 @@ function Workstation({ history, setHistory, emailAddress, setEmailAddress, model
       const width = pred.width * scaleX;
       const height = pred.height * scaleY;
       const isRed = ['no helmet', 'red light', 'tripling', 'wrong lane'].includes(pred.class.toLowerCase());
-      const border = isRed ? '#ef4444' : '#10b981';
+      const border = isRed ? 'var(--danger)' : 'var(--success)';
       return (
         <div key={idx} className="bounding-box" style={{ left: `${x}px`, top: `${y}px`, width: `${width}px`, height: `${height}px`, borderColor: border }}>
-          <div className="box-label" style={{ backgroundColor: border }}>{pred.class} {Math.round(pred.confidence * 100)}%</div>
+          <div className="box-label" style={{ backgroundColor: border }}>{pred.class.toUpperCase()} {Math.round(pred.confidence * 100)}%</div>
         </div>
       );
     });
   };
 
-  // Ensure webcam stops if unmounted
-  useEffect(() => {
-    return () => {
-      if (isStreaming) stopWebcam();
-    };
-  }, [isStreaming]);
+  useEffect(() => { return () => { if (isStreaming) stopWebcam(); }; }, [isStreaming]);
 
   return (
-    <>
-      <div className="control-panel">
-        <div className="detection-header" style={{ marginBottom: '-8px' }}>
-          <h2><Radar size={20} /> Detection Control</h2>
-          <p>Configure your input source and model parameters for traffic violation inference.</p>
+    <div className="grid-cols-2">
+      {/* Cloud Vision API Left Properties Panel */}
+      <div className="card" style={{ padding: '0', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 400, color: 'var(--text-main)', marginBottom: '16px' }}>Input properties</h2>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className={`btn ${inputMode === 'upload' ? 'btn-primary' : ''}`} style={{background: inputMode === 'upload' ? 'var(--primary-light)' : 'transparent', color: inputMode === 'upload'?'var(--primary)':'var(--text-muted)', borderRadius: '4px'}} onClick={() => {setInputMode('upload'); if(isStreaming)stopWebcam();}}>Media Request</button>
+            <button className={`btn ${inputMode === 'stream' ? 'btn-primary' : ''}`} style={{background: inputMode === 'stream' ? 'var(--primary-light)' : 'transparent', color: inputMode === 'stream'?'var(--primary)':'var(--text-muted)', borderRadius: '4px'}} onClick={() => setInputMode('stream')}>Stream Payload</button>
+          </div>
         </div>
 
-        <div className="card">
-          <div className="input-group">
-            <label>Notification Settings</label>
-            <div className="input-field">
-              <Mail size={16} color="var(--text-light)" style={{ marginRight: '8px' }} />
-              <input type="email" value={emailAddress} onChange={(e) => setEmailAddress(e.target.value)} placeholder="Alert email..." />
-            </div>
-          </div>
+        <div style={{ padding: '24px' }}>
+           {inputMode === 'upload' && (
+             <div>
+                <div className={`upload-area ${dragActive ? 'active' : ''}`} onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop} onClick={() => fileInputRef.current?.click()}>
+                  <input ref={fileInputRef} type="file" accept="image/*,video/mp4" onChange={handleChange} style={{ display: 'none' }} />
+                  <Upload size={32} color="var(--primary)" style={{ margin: '0 auto' }} />
+                  <h4>Select file to analyze</h4>
+                  <p>Drag and drop JPG or MP4</p>
+                </div>
+                <button className="btn btn-primary" style={{ width: '100%', marginTop: '24px', borderRadius: '4px' }} onClick={analyzeStaticImage} disabled={loading || !file || isStreaming}>
+                  {loading ? <Activity size={18} className="loader-pulse" /> : <Radar size={18} />}
+                  {loading ? 'Evaluating...' : 'Test Vision Model'}
+                </button>
+             </div>
+           )}
 
-          <div className="input-group">
-            <label>Model Selection</label>
-            <div className="input-field">
-              <input type="text" value={modelSelection} onChange={(e) => setModelSelection(e.target.value)} placeholder="username/project/1" />
-              <ChevronDown size={16} color="var(--text-light)" />
-            </div>
-          </div>
-
-          <div className="tabs">
-            <div className="tab active">Media Processor</div>
-          </div>
-
-          <div className={`upload-area ${dragActive ? 'active' : ''}`} onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop} onClick={() => fileInputRef.current?.click()}>
-            <input ref={fileInputRef} type="file" accept="image/*,video/mp4" onChange={handleChange} style={{ display: 'none' }} />
-            <div className="upload-icon"><Upload size={20} /></div>
-            <h4 style={{ fontSize: '0.9rem', marginBottom: '4px' }}>Drag & Drop or Click to Upload</h4>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Simulate single frame traffic conditions</p>
-          </div>
-
-          <button className="btn btn-primary" onClick={analyzeStaticImage} disabled={loading || !file || isStreaming}>
-            {loading ? <Activity size={16} className="loader-pulse" /> : <Search size={16} />}
-            {loading ? 'Processing...' : (isVideo ? 'Analyze Video Frame' : 'Run Static Inference')}
-          </button>
-        </div>
-
-        <div className="card">
-          <div className="input-group" style={{ marginBottom: '16px' }}>
-            <label>Live Stream Configuration</label>
-            <div className="input-field">
-              <input type="text" value={streamSource} onChange={(e) => setStreamSource(e.target.value)} placeholder="#WEBCAM or rtsp://..." />
-            </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-gray)', marginTop: '8px' }}>Use #WEBCAM for local camera, or drop an RTSP/HTTP URL for remote IP cameras.</p>
-          </div>
-          <div className="stream-controls">
-            {!isStreaming ? (
-              <button className="btn btn-success" onClick={startWebcam}><Play size={16} /> Start</button>
-            ) : (
-              <button className="btn btn-danger" onClick={stopWebcam} style={{ background: 'var(--danger)', color: 'white' }}><Square size={16} /> Stop</button>
-            )}
-          </div>
+           {inputMode === 'stream' && (
+             <div>
+                <div className="input-group">
+                  <label>RTSP or Webcam Identifier</label>
+                  <div className="input-field">
+                    <input type="text" value={streamSource} onChange={(e) => setStreamSource(e.target.value)} placeholder="#WEBCAM (Local) or rtsp://..." />
+                  </div>
+                </div>
+                {!isStreaming ? (
+                  <button className="btn btn-primary" style={{ width: '100%', borderRadius: '4px' }} onClick={startWebcam}><Video size={18} /> Connect to Stream</button>
+                ) : (
+                  <button className="btn btn-danger" style={{ width: '100%', borderRadius: '4px' }} onClick={stopWebcam}><Square size={18} /> End Stream Processing</button>
+                )}
+             </div>
+           )}
         </div>
       </div>
 
-      <div className="feed-panel">
-        <div className={`camera-feed ${(!preview && !isStreaming) ? 'camera-feed-inactive' : ''}`}>
-          {(!preview && !isStreaming) ? (
-            <>
-              <div className="feed-icon"><Video size={28} /></div>
-              <h3>Feed Inactive</h3>
-              <p style={{ fontSize: '0.85rem' }}>Initiate live stream or upload media</p>
-            </>
-          ) : (
-            <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {(isStreaming && streamSource === "#WEBCAM") ? (
-                 <video ref={videoRef} autoPlay playsInline muted style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} onLoadedMetadata={onVideoLoad} />
-              ) : (isStreaming && streamSource !== "#WEBCAM") ? (
-                 <img ref={imageRef} src={`${API_BASE_URL}/api/stream?url=${encodeURIComponent(streamSource)}`} crossOrigin="anonymous" alt="RTSP Relay Native M-JPEG" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} onLoad={onImageLoad} />
-              ) : isVideo ? (
-                 <video ref={imageRef} src={preview} controls crossOrigin="anonymous" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} onLoadedMetadata={onImageLoad} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="card" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '540px' }}>
+           <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
+             <h3 style={{ fontSize: '1rem', fontWeight: 500 }}>Inference Viewer</h3>
+           </div>
+           <div className="camera-feed" style={{ flex: 1, border: 'none', borderRadius: 0 }}>
+              {(!preview && !isStreaming) ? (
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                  Awaiting payload block...
+                </div>
               ) : (
-                 <img ref={imageRef} src={preview} alt="Upload" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} onLoad={onImageLoad} />
+                <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {(isStreaming && streamSource === "#WEBCAM") ? (
+                     <video ref={videoRef} autoPlay playsInline muted style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} onLoadedMetadata={onVideoLoad} />
+                  ) : (isStreaming && streamSource !== "#WEBCAM") ? (
+                     <img ref={imageRef} src={`${API_BASE_URL}/api/stream?url=${encodeURIComponent(streamSource)}`} crossOrigin="anonymous" alt="RTSP Relay Native M-JPEG" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} onLoad={onImageLoad} />
+                  ) : isVideo ? (
+                     <video ref={imageRef} src={preview} controls crossOrigin="anonymous" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} onLoadedMetadata={onImageLoad} />
+                  ) : (
+                     <img ref={imageRef} src={preview} alt="Upload" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} onLoad={onImageLoad} />
+                  )}
+                  {renderBoundingBoxes()}
+                </div>
               )}
-              {renderBoundingBoxes()}
-            </div>
-          )}
-          {isStreaming && (
-            <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.5)', padding: '6px 12px', borderRadius: 999 }}>
-              <span className="loader-pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--danger)' }}></span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'white', textTransform: 'uppercase' }}>Live AI Analysis</span>
-            </div>
-          )}
-        </div>
-
-        <div className="card logs-card" style={{ overflowY: 'auto' }}>
-          <div className="logs-header">
-            <h3 style={{ fontSize: '1.1rem' }}>Inference Logs</h3>
-            <div className="logs-badge">{history.length} Events</div>
-          </div>
-          <div className="logs-list">
-            {history.map((log, idx) => (
-              <div className="log-item" key={idx}>
-                <div className="log-thumbnail-placeholder">
-                  {log.img ? <img src={log.img} alt="thumb" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Video size={24} color="var(--text-light)" />}
-                </div>
-                <div className="log-info">
-                  <div className="log-title-row"><h4 className="log-title">{log.title}</h4><span className="log-time">{log.time}</span></div>
-                  <div className="log-meta">
-                    <div className="plate-badge">{log.plate}</div><div className="feed-label">Camera Station 1</div>
-                  </div>
-                  <div className="log-status">
-                    <span className={`status-processed ${log.title.includes('HELMET') ? 'text-danger' : ''}`} style={{ color: log.title.includes('HELMET') || log.title.includes('LIGHT') ? 'var(--danger)' : 'var(--success)' }}>{log.status}</span>
-                    <span className="status-confidence">Confidence: {log.conf}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
 // -----------------------------------------------------------------------------
-// INTELLIGENCE TAB
+// INTELLIGENCE TAB 
 // -----------------------------------------------------------------------------
 function Intelligence({ history }) {
   const downloadCSV = () => {
     const csvRows = [];
-    csvRows.push(['Log ID', 'Violation Type', 'System Confidence', 'Time', 'Plate']);
+    csvRows.push(['Log ID', 'Violation Type', 'System Confidence', 'Time', 'Plate'].join(','));
     for (const item of history) {
       csvRows.push([item.id, item.title, item.conf, `"${item.time}"`, item.plate].join(','));
     }
-    const blob = new Blob([csvRows.join('\\n')], { type: 'text/csv' });
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.setAttribute('href', url);
-    a.setAttribute('download', 'traffic_violations_export.csv');
+    a.setAttribute('download', 'RoadEye_Workspace_Export.csv');
     a.click();
   };
 
   return (
-    <div className="card" style={{ gridColumn: '1 / -1', maxWidth: '100%', overflowY: 'auto' }}>
-      <div className="detection-header" style={{ marginBottom: '24px', background: 'var(--bg-card)', color: 'var(--text-dark)', boxShadow: 'none', borderBottom: '1px solid var(--border-color)', padding: '0 0 24px 0', borderRadius: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 style={{ color: 'var(--text-dark)' }}><Database size={20} color="var(--primary)" /> Complete Intelligence Database</h2>
-          <p style={{ color: 'var(--text-gray)' }}>Historical log of all traffic violations cataloged by the system.</p>
-        </div>
-        <button className="btn btn-primary" style={{ width: 'auto' }} onClick={downloadCSV}>Export CSV Report</button>
+    <div className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 400 }}>BigQuery Analytics Export</h2>
+        <button className="btn" style={{ border: '1px solid var(--border)', borderRadius: '4px' }} onClick={downloadCSV}><Download size={18} /> Export CSV</button>
       </div>
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-            <th style={{ padding: '16px', color: 'var(--text-light)' }}>Log ID</th>
-            <th style={{ padding: '16px', color: 'var(--text-light)' }}>Image Evidence</th>
-            <th style={{ padding: '16px', color: 'var(--text-light)' }}>Violation Type</th>
-            <th style={{ padding: '16px', color: 'var(--text-light)' }}>System Confidence</th>
-            <th style={{ padding: '16px', color: 'var(--text-light)' }}>Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          {history.map((row, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
-              <td style={{ padding: '16px', fontWeight: 600 }}>{row.id}</td>
-              <td style={{ padding: '16px' }}>
-                <div style={{ width: 60, height: 40, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
-                  {row.img && <img src={row.img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="evidence" />}
-                </div>
-              </td>
-              <td style={{ padding: '16px', color: row.title.includes('HELMET') ? 'var(--danger)' : 'var(--text-dark)', fontWeight: 600 }}>{row.title}</td>
-              <td style={{ padding: '16px' }}>{row.conf}</td>
-              <td style={{ padding: '16px', color: 'var(--text-gray)' }}>{row.time}</td>
+      
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        <table className="table-glass">
+          <thead>
+            <tr>
+              <th>Ticket ID</th>
+              <th>Snapshot Evidence</th>
+              <th>Category</th>
+              <th>Target Confidence</th>
+              <th>Time Registered</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {history.map((row, i) => (
+              <tr key={i}>
+                <td style={{ fontWeight: 500, color: 'var(--primary)' }}>{row.id}</td>
+                <td>
+                  <div className="log-thumbnail-placeholder">
+                    {row.img && <img src={row.img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="evidence" />}
+                  </div>
+                </td>
+                <td style={{ fontWeight: 500 }}>{row.title}</td>
+                <td>{row.conf}</td>
+                <td style={{ color: 'var(--text-muted)' }}>{row.time}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {history.length === 0 && <p style={{ color: 'var(--text-muted)', padding: '24px', textAlign: 'center' }}>No datasets populated.</p>}
+      </div>
     </div>
   );
 }
@@ -513,31 +483,43 @@ function Intelligence({ history }) {
 // -----------------------------------------------------------------------------
 // SYSTEM TAB
 // -----------------------------------------------------------------------------
-function SystemSettings({ emailAddress, setEmailAddress, modelSelection, setModelSelection }) {
+function SystemSettings({ emailAddress, setEmailAddress, modelSelection, setModelSelection, showToast }) {
+  const [localEmail, setLocalEmail] = useState(emailAddress);
+  const [localModel, setLocalModel] = useState(modelSelection);
+
+  const handleSave = () => {
+    setEmailAddress(localEmail);
+    setModelSelection(localModel);
+    showToast("Global environment variables synchronized", "success");
+  };
+
   return (
-    <div style={{ gridColumn: '1 / -1', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+      <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: 'var(--text-main)', marginBottom: '8px' }}>Workspace Settings</h2>
+      <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>Configure API endpoints and event triggers for this project.</p>
+
       <div className="card">
-        <h2 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}><Settings size={20} /> Application Settings</h2>
-        
+        <h3 style={{ marginBottom: '24px', fontSize: '1rem', fontWeight: 500 }}>IAM Routing Variables</h3>
         <div className="input-group">
-          <label>Global Administrator Email</label>
+          <label>Global Administrator Email Dispatch</label>
           <div className="input-field">
-            <Mail size={16} color="var(--text-light)" style={{ marginRight: '8px' }} />
-            <input type="email" value={emailAddress} onChange={(e) => setEmailAddress(e.target.value)} />
+            <input type="email" value={localEmail} onChange={(e) => setLocalEmail(e.target.value)} />
           </div>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-gray)', marginTop: '8px' }}>This email permanently receives ticket dispatches.</p>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>Overrides the default environment payload dispatch.</p>
         </div>
 
-        <div className="input-group" style={{ marginTop: '24px' }}>
-          <label>Root Roboflow Instance</label>
+        <h3 style={{ marginTop: '40px', marginBottom: '24px', fontSize: '1rem', fontWeight: 500 }}>Vertex AI Model Pointer</h3>
+        <div className="input-group">
+          <label>Model Version UUID</label>
           <div className="input-field">
-            <Activity size={16} color="var(--text-light)" style={{ marginRight: '8px' }} />
-            <input type="text" value={modelSelection} onChange={(e) => setModelSelection(e.target.value)} />
+            <input type="text" value={localModel} onChange={(e) => setLocalModel(e.target.value)} />
           </div>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-gray)', marginTop: '8px' }}>Format: username/project/version</p>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>Syntax: `workspace/project/version`</p>
         </div>
 
-        <button className="btn btn-primary" style={{ marginTop: '32px' }} onClick={() => alert("Settings saved locally to state.")}>Save System Configuration</button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '40px' }}>
+          <button className="btn btn-primary" onClick={handleSave}>Save Changes</button>
+        </div>
       </div>
     </div>
   );

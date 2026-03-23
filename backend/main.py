@@ -1,11 +1,15 @@
 import os
+import base64
+import time
+
+import cv2
+import numpy as np
+import requests
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.responses import StreamingResponse
-import cv2
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-import requests
 from notifications import send_violation_email
 from database import init_db, insert_violation, get_all_violations
 from tracker import CentroidTracker
@@ -51,15 +55,17 @@ def video_feed(url: str):
     """Dynamically proxies an RTSP or remote IP camera stream into an MJPEG stream playable natively in browsers"""
     def gen_frames(rtsp_url):
         cap = cv2.VideoCapture(rtsp_url)
-        while True:
-            success, frame = cap.read()
-            if not success:
-                break
-            else:
+        try:
+            while True:
+                success, frame = cap.read()
+                if not success:
+                    break
                 ret, buffer = cv2.imencode('.jpg', frame)
-                frame = buffer.tobytes()
+                jpg_bytes = buffer.tobytes()
                 yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                       b'Content-Type: image/jpeg\r\n\r\n' + jpg_bytes + b'\r\n')
+        finally:
+            cap.release()
     
     return StreamingResponse(gen_frames(url), media_type='multipart/x-mixed-replace; boundary=frame')
 
@@ -76,11 +82,26 @@ async def detect_violation(file: UploadFile = File(...), recipient_email: str = 
     ROBOFLOW_MODEL = os.getenv("ROBOFLOW_MODEL", "helmet-detection-and-number-plate-recognition/2").strip('"').strip("'")
     
     # Use dynamically provided model_name or fallback to ROBOFLOW_MODEL
+    if model_name:
+        model_name = model_name.strip(' "\'\n\r')
     actual_model = model_name if model_name and len(model_name) > 2 else ROBOFLOW_MODEL
 
-    import base64
     try:
         image_bytes = await file.read()
+        
+        # --- Preprocessing Unit (Report Specific) ---
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is not None:
+            # 1. Noise Reduction (Gaussian Blur)
+            img = cv2.GaussianBlur(img, (5, 5), 0)
+            # 2. Image Resizing (Standardizing to 640x640)
+            img = cv2.resize(img, (640, 640))
+            # 3. Re-encode frame for REST Transmission 
+            _, encoded_img = cv2.imencode('.jpg', img)
+            image_bytes = encoded_img.tobytes()
+            
         base64_image = base64.b64encode(image_bytes).decode("ascii")
     except Exception as e:
         raise HTTPException(status_code=400, detail="Invalid image file.")
@@ -112,6 +133,7 @@ async def detect_violation(file: UploadFile = File(...), recipient_email: str = 
         upload_url = f"https://detect.roboflow.com/{actual_model}?api_key={ROBOFLOW_API_KEY}"
 
         # Perform prediction (Sending base64 encoded string, which Roboflow officially supports)
+        response = None
         try:
             response = requests.post(
                 upload_url,
@@ -122,9 +144,9 @@ async def detect_violation(file: UploadFile = File(...), recipient_email: str = 
             detections = response.json()
         except requests.exceptions.RequestException as e:
             error_details = response.text if 'response' in locals() and response is not None else str(e)
-            print(f"Roboflow API Error: {error_details}")
+            print(f"Roboflow API Error: {error_details} | Model: {actual_model}")
             # Do NOT swallow the error, throw it so the frontend can display it in red
-            raise HTTPException(status_code=502, detail=f"Roboflow API Error: {error_details}")
+            raise HTTPException(status_code=502, detail=f"Roboflow API Error: {error_details} | Model: {actual_model}")
 
     predictions = detections.get("predictions", [])
     
@@ -132,7 +154,7 @@ async def detect_violation(file: UploadFile = File(...), recipient_email: str = 
     rects_with_classes = []
     for pred in predictions:
         class_name = pred.get("class", "").lower()
-        if class_name in ["no helmet", "without helmet", "red light", "tripling", "wrong lane"]:
+        if class_name in ["no helmet", "without helmet", "red light", "tripling", "wrong lane", "using phone", "using_phone", "phone"]:
             rects_with_classes.append((pred.get("x", 0), pred.get("y", 0), pred.get("width", 0), pred.get("height", 0), class_name))
             
     objects, classes = tracker.update(rects_with_classes)
@@ -162,10 +184,13 @@ async def detect_violation(file: UploadFile = File(...), recipient_email: str = 
         with open(temp_image_path, "wb") as f:
             f.write(image_bytes)
             
-        # Asynchronous dispatch or background task recommended for prod, sync is okay for demo
+        ticket_id = f"TKT-{(int(time.time()) % 1000) + 100:03d}" # Generate 3-digit pseudo ID for email
+        
         send_success = send_violation_email(
             violation_type=violation_type, 
             image_path=temp_image_path,
+            confidence=violation_confidence,
+            ticket_id=ticket_id,
             custom_recipient=recipient_email
         )
         print(f"Violation Email Sent: {send_success} to {recipient_email}")

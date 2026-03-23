@@ -5,7 +5,7 @@ DB_FILE = "./roadeye.db"
 
 def init_db():
     """Initializes the SQLite database and creates the violations table if it doesn't exist."""
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS violations (
@@ -23,7 +23,7 @@ def init_db():
 
 def insert_violation(violation_type, confidence, image_base64=None):
     """Inserts a new traffic violation record into the systemic database."""
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO violations (violation_type, confidence, image_base64)
@@ -34,7 +34,7 @@ def insert_violation(violation_type, confidence, image_base64=None):
 
 def get_all_violations():
     """Retrieves all historical violation records, sorted by newest first."""
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM violations ORDER BY timestamp DESC')
