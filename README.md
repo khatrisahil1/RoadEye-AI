@@ -1,99 +1,159 @@
 <div align="center">
-  <img src="https://img.shields.io/badge/System-RoadEye_AI-EF4444?style=for-the-badge&logo=polestar" alt="RoadEye AI" />
-  <h1>🛣️ RoadEye AI</h1>
-  <p><strong>Next-Generation Automated Traffic Intelligence & Enforcement Edge Node</strong></p>
+
+
+🛣️ RoadEye AI
+
+AI-Powered Traffic Intelligence & Enforcement System
+
+<p><strong>Real-time detection • Smart tracking • Automated enforcement • Analytics dashboard</strong></p>
+
+<img src="https://img.shields.io/badge/RoadEye_AI-V1.0-0EA5E9?style=for-the-badge&logo=tesla&logoColor=white"/>   
+<p> </p>
+
+<img src="https://img.shields.io/badge/AI-YOLOv8-red?style=flat-square"/>
+<img src="https://img.shields.io/badge/Backend-FastAPI-059669?style=flat-square"/>
+<img src="https://img.shields.io/badge/Frontend-React-0ea5e9?style=flat-square"/>
+<img src="https://img.shields.io/badge/Database-SQLite-6366f1?style=flat-square"/>
+<img src="https://img.shields.io/badge/Status-Production_Ready-success?style=flat-square"/>
+
+
 </div>
 
-<hr/>
-
-## 📖 Overview
-**RoadEye AI** is a comprehensive, full-stack deep learning solution engineered to autonomously monitor local traffic intersections, instantly identify systemic vehicular driving infractions, and programmatically draft and dispatch evidentiary citation tickets. 
-
-Originally built strictly as a localized desktop tool, this **V2.0** architecture completely reconstructs the system into an enterprise-grade cloud-ready Web Application—featuring a beautiful real-time React analytics workstation, a permanent SQLite enforcement database, and a highly concurrent Python server wrapping **Roboflow API inference**.
-
-### Core Capabilities
-- 🛡️ **Zero-Latency Infraction Detection:** Real-time identification of *No Helmet*, *Red Light Jumps*, *Tripling*, and *Wrong Lane* utilizing custom-trained models.
-- 📹 **Omnipresent Media Support:** Seamlessly process static imagery, local MP4 forensic video files, live laptop WebCams, or unified **RTSP Network Security Cameras** using an integrated OpenCV hardware transcoder.
-- 📩 **Automated E-Ticketing Pipeline:** Instantaneously bounds the infraction with a confidence rating and dispatches a rich-HTML evidentiary email to local administrative authorities (via Gmail SMTP).
-- 🗄️ **Persistent Analytics Database:** Retains highly granular analytical logs utilizing a zero-dependency local SQLite schema.
-- 📊 **Intelligence Bureau Workstation:** A fully React-based Single Page Application boasting dynamic charting, ticket reviews, parameter configurations, and a 1-click **CSV Report Exporter**.
 
 ---
 
-## 🏗️ Architectural Topology
+🎥 App preview
 
-The software strictly decouples frontend GUI from backend model inference rendering it infinitely horizontally scalable:
-- **Frontend Core:** React 18 / Vite / Vanilla CSS (Light Mode Analytics Dashboard)
-- **Backend API:** FastAPI (Python 3) / Uvicorn Server
-- **Database Layer:** Native SQLite3
-- **Inference Cloud:** Roboflow Hosted YOLOv8
-- **Transport Security:** HTTP Base64 Payloads / Yagmail SMTP
+<img width="1440" height="900" alt="image" src="https://github.com/user-attachments/assets/860a8e9d-fa0d-4bd8-9bf2-a817cf87e2b3" />
 
-### 🧠 Intelligent Object Tracking (DeepSORT Successor)
-In previous V1 desktop iterations, the project report heavily leaned on **DeepSORT** for multi-object tracking. However, passing local frames into DeepSORT algorithms fails catastrophically in network-dependent stateless REST APIs (where WebCams proxy HTTP payloads dynamically).
 
-To vastly **exceed** the original report specifications, RoadEye V2 leverages a completely custom, pure-math **Stateful Centroid Target Tracking Engine** wired directly into FastAPI's memory state. 
-This matrix intercepts Raw Roboflow predictions over HTTP, hashes target velocities using spatial distance heuristics, and systematically maps sequential `Vehicle IDs` globally. Thus, a violating vehicle driving through the camera feed across 5 different frames triggers exactly *one* automated citation, drastically curtailing database inflation and admin email spam natively.
+<p align="center">
+  <img src="assets/demo.gif" width="90%" alt="RoadEye Demo"/>
+</p>
+
+
+# 📖 Overview
+
+RoadEye AI is a full-stack intelligent traffic enforcement system designed to detect, track, and penalize violations in real time.
+
+Built as :
+	•	🌐 Cloud-ready \
+	•	⚡ Real-time capable \
+	•	📊 Analytics-driven \
+	•	🧠 AI-enhanced \
+
+
+# ✨ Core Capabilities
+
+Feature	Description
+🛡️ Detection Engine	Identifies helmet violations, red light jumps, tripling, and wrong lane \
+📹 Multi-Input Support	Webcam, RTSP CCTV, images, videos \
+📩 E-Ticketing	Auto email with evidence + confidence \
+🗄️ Storage	Persistent SQLite logging \
+📊 Dashboard	React analytics workstation \
 
 ---
 
-## 🚀 Quickstart Initialization
+# 🖼️ System Screenshots
 
-This setup assumes `python` and `npm` are locally installed.
+### 📊 Dashboard UI
 
-### 1. Backend Boot sequence
-Navigate to the central API housing, securely instantiate the Python dependencies, configure global environment bindings, and deploy the Uvicorn listener:
+<img width="1440" height="900" alt="image" src="https://github.com/user-attachments/assets/7915efd0-f8f7-406f-9dc3-b0184545019a" />
 
-```bash
+
+### 📩 Violation Email Output
+<img width="1440" height="900" alt="image" src="https://github.com/user-attachments/assets/2e5f9a4c-effa-4cd7-bdd9-2e66a343b5f3" />
+
+
+---
+
+
+# 🏗️ Architecture
+<img width="1440" height="229" alt="image" src="https://github.com/user-attachments/assets/06badaee-d174-46e8-b7be-e3a85b427a83" />
+
+---
+
+# ⚙️ Tech Stack
+
+Layer	Tech : \
+🎨 Frontend	React 18, Vite \
+⚙️ Backend	FastAPI, Uvicorn \
+🧠 AI	YOLOv8 (Roboflow) \
+🗄️ Database	SQLite \
+📡 Video	OpenCV \
+📩 Email	Yagmail SMTP \
+
+---
+
+
+
+# 🚀 Installation
+
+🔹 Backend Setup
+```
 cd backend
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-pip install opencv-python-headless # Transcoding proxy
+pip install opencv-python-headless
 ```
-**Configure Environment Security Parameters (`backend/.env`):**
-```env
-ROBOFLOW_API_KEY="YOUR_API_KEY"
-ROBOFLOW_MODEL="username/projectname/version"
-SENDER_EMAIL="admin_dispatch@gmail.com"
-SENDER_PASSWORD="your_16_char_google_app_password"
+🔐 Environment Variables
 ```
+ROBOFLOW_API_KEY=your_key
+ROBOFLOW_MODEL=username/project/version
+SENDER_EMAIL=admin@gmail.com
+SENDER_PASSWORD=app_password
+```
+▶️ Run Backend
+``
+..source venv/bin/activate && uvicorn main:app --reload
+``
 
-**Ignition:**
-```bash
-source ../venv/bin/activate && uvicorn main:app --reload
+🔹 Frontend Setup
 ```
-
-### 2. Frontend Boot Sequence
-In a secondary terminal, mount the React application:
-```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-The system will now be active at **http://localhost:5173**. 
-Navigate to the "Workstation" tab to configure your IP Camera (RTSP hook) or Local WebCam and begin AI inferences!
 
----
+🌐 Local Access
+```
+👉 http://localhost:5173
 
-## 🛠️ Useful & Required Commands Reference
+Go to Workstation → Start Camera → Monitor Violations
+```
 
-### Backend Commands
-Navigate to the `backend` directory before running these:
-- **Create Virtual Environment:** `python -m venv venv`
-- **Activate Environment (Mac/Linux):** `source venv/bin/activate`
-- **Activate Environment (Windows):** `venv\Scripts\activate`
-- **Install Dependencies:** `pip install -r requirements.txt`
-- **Start Server (Development):** `uvicorn main:app --reload`
-- **Start Server (Custom Port/Host):** `uvicorn main:app --host 0.0.0.0 --port 8000 --reload`
+🛠️ Command Reference
 
-### Frontend Commands
-Navigate to the `frontend` directory before running these:
-- **Install Dependencies:** `npm install`
-- **Run Developer Server:** `npm run dev`
-- **Build for Production:** `npm run build`
-- **Preview Production Build:** `npm run preview`
+<details>
+<summary>Backend Commands</summary>
 
----
-*Built as a dedicated final year system software engineering project.*
+```
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+</details>
+
+
+<details>
+<summary>Frontend Commands</summary>
+
+```
+npm install
+npm run dev
+npm run build
+npm run preview
+```
+</details>
+
+
+
+<div align="center">
+
+
+⭐ Star this repo if you found it impressive!
+
+</div>
