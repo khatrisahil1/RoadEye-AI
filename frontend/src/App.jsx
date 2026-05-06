@@ -10,7 +10,7 @@ const API_BASE_URL = 'http://127.0.0.1:8000';
 function App() {
   const [activeTab, setActiveTab] = useState('overview');
   const [history, setHistory] = useState([]);
-  const [emailAddress, setEmailAddress] = useState(localStorage.getItem('roadeye_email') || 'traffic_police@gov.in');
+  const [emailAddress, setEmailAddress] = useState(localStorage.getItem('roadeye_email') || 'csai22071@glbitm.ac.in');
   const [modelSelection, setModelSelection] = useState(localStorage.getItem('roadeye_model') || 'traffic-voilation-voov4-arort/1');
   const [theme, setTheme] = useState(localStorage.getItem('roadeye_theme') || 'light');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -251,7 +251,7 @@ function Workstation({ history, emailAddress, modelSelection, showToast }) {
           streamRef.current = stream;
           if (videoRef.current) videoRef.current.srcObject = stream;
       }
-      streamIntervalRef.current = setInterval(analyzeStreamFrame, 200);
+      streamIntervalRef.current = setInterval(analyzeStreamFrame, 1500);
       showToast("Live Network Intercept Initiated", "success");
     } catch (err) {
       showToast("Hardware failure bridging stream limits.", "error");
@@ -287,7 +287,13 @@ function Workstation({ history, emailAddress, modelSelection, showToast }) {
       formData.append('model_name', modelSelection); 
       try {
         const response = await axios.post(`${API_BASE_URL}/api/detect`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-        setResult(response.data);
+        if (response.data.success) {
+          setResult(response.data);
+          // Only add to history if a real violation was found in this frame
+          if (response.data.violation_found && response.data.violation_details) {
+            setHistory(prev => [response.data.violation_details, ...prev]);
+          }
+        }
       } catch (err) { }
     }, 'image/jpeg');
   };

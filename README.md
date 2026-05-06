@@ -46,7 +46,7 @@ Navigate to the central API housing, securely instantiate the Python dependencie
 
 ```bash
 cd backend
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 pip install opencv-python-headless # Transcoding proxy
@@ -81,7 +81,7 @@ Navigate to the "Workstation" tab to configure your IP Camera (RTSP hook) or Loc
 
 ### Backend Commands
 Navigate to the `backend` directory before running these:
-- **Create Virtual Environment:** `python -m venv venv`
+- **Create Virtual Environment:** `python3 -m venv venv` (use `python` on Windows)
 - **Activate Environment (Mac/Linux):** `source venv/bin/activate`
 - **Activate Environment (Windows):** `venv\Scripts\activate`
 - **Install Dependencies:** `pip install -r requirements.txt`

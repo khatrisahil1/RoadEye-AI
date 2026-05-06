@@ -26,7 +26,13 @@ app = FastAPI(title="RoadEye AI Backend", version="1.0.0")
 # Enable CORS for React frontend (Vite runs on port 5173 by default)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -162,6 +168,7 @@ async def detect_violation(file: UploadFile = File(...), recipient_email: str = 
     violation_found = False
     violation_type = ""
     violation_confidence = 0.0
+    ticket_id = "N/A"
     
     # Analyze the tracked object matrix to prevent duplicate tickets across frames
     for obj_id, centroid in objects.items():
@@ -198,10 +205,19 @@ async def detect_violation(file: UploadFile = File(...), recipient_email: str = 
         # Persist to SQLite Database permanently
         insert_violation(violation_type, violation_confidence, f"data:image/jpeg;base64,{base64_image}")
 
+    # Always return a valid violation_details object for the frontend logs
+    violation_data = {
+        "id": ticket_id if violation_found else "N/A",
+        "title": violation_type.title() if violation_found else "Safe",
+        "conf": f"{violation_confidence*100:.1f}%" if violation_found else "0%",
+        "time": datetime.now().strftime("%I:%M %p"),
+        "img": f"data:image/jpeg;base64,{base64_image}",
+        "plate": "UNREGISTERED"
+    }
+
     return {
         "success": True,
-        "filename": file.filename,
-        "violation_found": violation_found,
-        "violation_type": violation_type,
-        "predictions": predictions
+        "predictions": predictions,
+        "violation_details": violation_data,
+        "violation_found": violation_found
     }
